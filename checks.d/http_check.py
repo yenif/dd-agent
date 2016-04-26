@@ -5,6 +5,7 @@
 # stdlib
 from datetime import datetime
 import os.path
+from os import environ
 import re
 import socket
 import ssl
@@ -150,9 +151,11 @@ class HTTPCheck(NetworkCheck):
     def __init__(self, name, init_config, agentConfig, instances):
         self.ca_certs = init_config.get('ca_certs', get_ca_certs_path())
         proxy_settings = get_proxy(agentConfig)
-        if not proxy_settings:
-            self.proxies = None
-        else:
+        self.proxies = {
+            "http": None,
+            "https": None,
+        }
+        if proxy_settings:
             uri = "{host}:{port}".format(
                 host=proxy_settings['host'],
                 port=proxy_settings['port'])
@@ -161,10 +164,13 @@ class HTTPCheck(NetworkCheck):
                     user=proxy_settings['user'],
                     password=proxy_settings['password'],
                     uri=uri)
-            self.proxies = {
-                'http': "http://{uri}".format(uri=uri),
-                'https': "https://{uri}".format(uri=uri)
-            }
+            self.proxies['http'] = "http://{uri}".format(uri=uri)
+            self.proxies['https'] = "https://{uri}".format(uri=uri)
+
+        if 'no_proxy' in environ:
+            self.proxies['no_proxy'] = environ['no_proxy']
+        elif 'NO_PROXY' in environ:
+            self.proxies['no_proxy'] = environ['NO_PROXY']
 
         NetworkCheck.__init__(self, name, init_config, agentConfig, instances)
 
