@@ -127,7 +127,10 @@ class ProcessCheckTest(AgentCheckTest):
         'system.processes.number',
         'system.processes.open_file_descriptors',
         'system.processes.threads',
-        'system.processes.voluntary_ctx_switches'
+        'system.processes.voluntary_ctx_switches',
+        'system.processes.run_time.avg',
+        'system.processes.run_time.max',
+        'system.processes.run_time.min',
     ]
 
     def get_psutil_proc(self):

@@ -34,6 +34,7 @@ ATTR_TO_METRIC = {
     'w_bytes':          'iowrite_bytes',  # FIXME: namespace me correctly (6.x) io.w_bytes
     'ctx_swtch_vol':    'voluntary_ctx_switches',  # FIXME: namespace me correctly (6.x), ctx_swt.voluntary
     'ctx_swtch_invol':  'involuntary_ctx_switches',  # FIXME: namespace me correctly (6.x), ctx_swt.involuntary
+    'run_time':         'run_time',
 }
 
 
@@ -241,6 +242,12 @@ class ProcessCheck(AgentCheck):
             st['r_bytes'].append(ioinfo.get('read_bytes'))
             st['w_bytes'].append(ioinfo.get('write_bytes'))
 
+            #calculate process run time
+            create_time = self.psutil_wrapper(p, 'create_time', None)
+            now = time.time()
+            run_time = now - create_time
+            st['run_time'].append(run_time)
+
         return st
 
     def check(self, instance):
@@ -284,8 +291,14 @@ class ProcessCheck(AgentCheck):
             vals = [x for x in proc_state[attr] if x is not None]
             # skip []
             if vals:
+                if attr == 'run_time':
+                    self.gauge('system.processes.%s.avg' % mname, sum(vals)/len(vals), tags=tags)
+                    self.gauge('system.processes.%s.max' % mname, max(vals), tags=tags)
+                    self.gauge('system.processes.%s.min' % mname, min(vals), tags=tags)
+
                 # FIXME 6.x: change this prefix?
-                self.gauge('system.processes.%s' % mname, sum(vals), tags=tags)
+                else:
+                    self.gauge('system.processes.%s' % mname, sum(vals), tags=tags)
 
         self._process_service_check(name, len(pids), instance.get('thresholds', None))
 
